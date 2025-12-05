@@ -8,8 +8,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header with Logo -->
         <header class="header">
+            <div class="logo-container">
+                <img src="https://pbs.twimg.com/profile_images/1849127708057645056/ojA02hHz_400x400.jpg" alt="Baint-AIOPs Logo" class="header-logo">
+            </div>
             <h1 class="title">Baint-AIOPs Mini Video Lab</h1>
             <p class="subtitle">Simple Browser-Based Video Editor</p>
         </header>
@@ -74,7 +77,7 @@
                         <input type="text" id="introText" class="text-input" placeholder="Enter intro text" value="Baint-AIOPs">
                     </div>
 
-                    <!-- Watermark -->
+                    <!-- Watermark Options -->
                     <div class="control-card">
                         <h3 class="control-title">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -84,7 +87,18 @@
                             </svg>
                             Watermark
                         </h3>
-                        <input type="text" id="watermarkText" class="text-input" placeholder="Enter watermark text" value="Baint-AIOPs">
+                        
+                        <label class="input-label">Watermark Type</label>
+                        <select id="watermarkType" class="select-input">
+                            <option value="text">Text Only</option>
+                            <option value="logo">Logo Only</option>
+                            <option value="both">Text + Logo</option>
+                        </select>
+
+                        <div id="textWatermarkDiv">
+                            <label class="input-label">Watermark Text</label>
+                            <input type="text" id="watermarkText" class="text-input" placeholder="Enter watermark text" value="Baint-AIOPs">
+                        </div>
                     </div>
 
                     <!-- Filters -->
