@@ -14,6 +14,7 @@ const progressDiv = document.getElementById('progressDiv');
 // Text inputs
 const introText = document.getElementById('introText');
 const watermarkText = document.getElementById('watermarkText');
+const watermarkType = document.getElementById('watermarkType');
 
 // Filter controls
 const filterSelect = document.getElementById('filterSelect');
@@ -33,6 +34,9 @@ let isPlaying = false;
 let videoDuration = 0;
 let mediaRecorder = null;
 let recordedChunks = [];
+let logoImage = new Image();
+logoImage.crossOrigin = "anonymous";
+logoImage.src = "https://pbs.twimg.com/profile_images/1849127708057645056/ojA02hHz_400x400.jpg";
 
 // Canvas context
 const ctx = previewCanvas.getContext('2d');
@@ -119,6 +123,7 @@ trimEndSlider.addEventListener('input', (e) => {
 // Text and filter changes
 introText.addEventListener('input', renderFrame);
 watermarkText.addEventListener('input', renderFrame);
+watermarkType.addEventListener('change', renderFrame);
 filterSelect.addEventListener('change', renderFrame);
 
 // Render frame with effects
@@ -154,14 +159,41 @@ function renderFrame() {
         ctx.fillText(intro, previewCanvas.width / 2, 50);
     }
     
-    // Draw watermark
-    const watermark = watermarkText.value;
-    if (watermark) {
-        ctx.font = '20px Arial';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(watermark, previewCanvas.width - 20, previewCanvas.height - 20);
+    // Draw watermark based on type
+    const wmType = watermarkType.value;
+    const logoSize = 50;
+    const padding = 20;
+    
+    if (wmType === 'logo' || wmType === 'both') {
+        // Draw logo in bottom-right
+        if (logoImage.complete) {
+            const logoX = previewCanvas.width - logoSize - padding;
+            const logoY = previewCanvas.height - logoSize - padding;
+            
+            // Add subtle background for logo
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(logoX - 5, logoY - 5, logoSize + 10, logoSize + 10);
+            
+            ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+        }
+    }
+    
+    if (wmType === 'text' || wmType === 'both') {
+        const watermark = watermarkText.value;
+        if (watermark) {
+            ctx.font = '20px Arial';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            
+            if (wmType === 'both') {
+                // Position text above logo
+                ctx.fillText(watermark, previewCanvas.width - padding, previewCanvas.height - logoSize - padding - 10);
+            } else {
+                // Position text at bottom-right
+                ctx.fillText(watermark, previewCanvas.width - padding, previewCanvas.height - padding);
+            }
+        }
     }
 }
 
@@ -231,7 +263,7 @@ exportBtn.addEventListener('click', async () => {
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'baint-video-edited.webm';
+            a.download = 'baint-aiops-video.webm';
             a.click();
             
             progressDiv.textContent = 'Export complete! Download started.';
@@ -243,7 +275,7 @@ exportBtn.addEventListener('click', async () => {
         
         // Start recording
         mediaRecorder.start();
-        progressDiv.textContent = 'Recording video...';
+        progressDiv.textContent = 'Recording video with Baint-AIOPs branding...';
         
         // Play video
         await videoElement.play();
