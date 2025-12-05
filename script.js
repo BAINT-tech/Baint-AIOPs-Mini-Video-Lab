@@ -36,7 +36,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let logoImage = new Image();
 logoImage.crossOrigin = "anonymous";
-logoImage.src = "https://pbs.twimg.com/profile_images/1849127708057645056/ojA02hHz_400x400.jpg";
+logoImage.src = "https://ibb.co/KpXhbZw9https://ibb.co/zHDGvYSN";
 
 // Canvas context
 const ctx = previewCanvas.getContext('2d');
