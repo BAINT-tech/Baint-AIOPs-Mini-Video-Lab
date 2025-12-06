@@ -126,7 +126,7 @@ watermarkText.addEventListener('input', renderFrame);
 watermarkType.addEventListener('change', renderFrame);
 filterSelect.addEventListener('change', renderFrame);
 
-// Render frame with effects
+// Render frame with effects (TikTok-style watermark)
 function renderFrame() {
     if (!videoElement.videoWidth) return;
     
@@ -146,7 +146,7 @@ function renderFrame() {
     ctx.drawImage(videoElement, 0, 0, previewCanvas.width, previewCanvas.height);
     ctx.filter = 'none';
     
-    // Draw intro text
+    // Draw intro text at top
     const intro = introText.value;
     if (intro) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -159,42 +159,58 @@ function renderFrame() {
         ctx.fillText(intro, previewCanvas.width / 2, 50);
     }
     
-    // Draw watermark based on type
+    // TikTok-style watermark (ALWAYS SHOWN - bottom-right corner)
     const wmType = watermarkType.value;
-    const logoSize = 50;
-    const padding = 20;
+    const logoSize = 60; // Slightly bigger like TikTok
+    const padding = 15;
+    const logoX = previewCanvas.width - logoSize - padding;
+    const logoY = previewCanvas.height - logoSize - padding - 40; // Space for text below
     
-    if (wmType === 'logo' || wmType === 'both') {
-        // Draw logo in bottom-right
-        if (logoImage.complete) {
-            const logoX = previewCanvas.width - logoSize - padding;
-            const logoY = previewCanvas.height - logoSize - padding;
-            
-            // Add subtle background for logo
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.fillRect(logoX - 5, logoY - 5, logoSize + 10, logoSize + 10);
-            
-            ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
-        }
+    // Always draw logo watermark (like TikTok)
+    if (logoImage.complete) {
+        // Semi-transparent background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.roundRect(logoX - 8, logoY - 8, logoSize + 16, logoSize + 55, 10);
+        ctx.fill();
+        
+        // Draw logo
+        ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+        
+        // Draw "Baint-AIOPs" text below logo (always)
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Baint-AIOPs', logoX + logoSize / 2, logoY + logoSize + 5);
     }
     
+    // Optional additional watermark text
     if (wmType === 'text' || wmType === 'both') {
         const watermark = watermarkText.value;
-        if (watermark) {
-            ctx.font = '20px Arial';
+        if (watermark && watermark !== 'Baint-AIOPs') {
+            ctx.font = '16px Arial';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.textAlign = 'right';
+            ctx.textAlign = 'left';
             ctx.textBaseline = 'bottom';
-            
-            if (wmType === 'both') {
-                // Position text above logo
-                ctx.fillText(watermark, previewCanvas.width - padding, previewCanvas.height - logoSize - padding - 10);
-            } else {
-                // Position text at bottom-right
-                ctx.fillText(watermark, previewCanvas.width - padding, previewCanvas.height - padding);
-            }
+            ctx.fillText(watermark, padding, previewCanvas.height - padding);
         }
     }
+}
+
+// Add roundRect support for older browsers
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.beginPath();
+        this.moveTo(x + r, y);
+        this.arcTo(x + w, y, x + w, y + h, r);
+        this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r);
+        this.arcTo(x, y, x + w, y, r);
+        this.closePath();
+        return this;
+    };
 }
 
 // Render loop for playing video
@@ -275,7 +291,7 @@ exportBtn.addEventListener('click', async () => {
         
         // Start recording
         mediaRecorder.start();
-        progressDiv.textContent = 'Recording video with Baint-AIOPs branding...';
+        progressDiv.textContent = 'Recording video with Baint-AIOPs watermark...';
         
         // Play video
         await videoElement.play();
