@@ -29,13 +29,15 @@ const trimEndSlider = document.getElementById('trimEndSlider');
 const trimStartValue = document.getElementById('trimStartValue');
 const trimEndValue = document.getElementById('trimEndValue');
 
+// Aspect ratio buttons
+const aspectBtns = document.querySelectorAll('.aspect-btn');
+
 // State
 let isPlaying = false;
 let videoDuration = 0;
 let mediaRecorder = null;
 let recordedChunks = [];
-
-// Load BOTH logos
+let currentAspectRatio = 'original';
 let logoImage = new Image();
 logoImage.crossOrigin = "anonymous";
 logoImage.src = "https://pbs.twimg.com/profile_images/1849127708057645056/ojA02hHz_400x400.jpg";
@@ -58,9 +60,8 @@ videoInput.addEventListener('change', (e) => {
 videoElement.addEventListener('loadedmetadata', () => {
     videoDuration = videoElement.duration;
     
-    // Set canvas size
-    previewCanvas.width = videoElement.videoWidth || 640;
-    previewCanvas.height = videoElement.videoHeight || 480;
+    // Set canvas size based on aspect ratio
+    updateCanvasSize();
     
     // Initialize trim sliders
     trimStartSlider.max = videoDuration;
@@ -72,6 +73,52 @@ videoElement.addEventListener('loadedmetadata', () => {
     // Initial render
     renderFrame();
 });
+
+// Aspect ratio button handlers
+aspectBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Remove active class from all buttons
+        aspectBtns.forEach(b => b.classList.remove('active'));
+        // Add active class to clicked button
+        btn.classList.add('active');
+        // Update aspect ratio
+        currentAspectRatio = btn.dataset.ratio;
+        // Update canvas size
+        updateCanvasSize();
+        // Re-render
+        renderFrame();
+    });
+});
+
+// Update canvas size based on aspect ratio
+function updateCanvasSize() {
+    const videoWidth = videoElement.videoWidth || 640;
+    const videoHeight = videoElement.videoHeight || 480;
+    
+    switch(currentAspectRatio) {
+        case '16:9':
+            previewCanvas.width = 1280;
+            previewCanvas.height = 720;
+            break;
+        case '9:16':
+            previewCanvas.width = 720;
+            previewCanvas.height = 1280;
+            break;
+        case '1:1':
+            previewCanvas.width = 1080;
+            previewCanvas.height = 1080;
+            break;
+        case '4:5':
+            previewCanvas.width = 1080;
+            previewCanvas.height = 1350;
+            break;
+        case 'original':
+        default:
+            previewCanvas.width = videoWidth;
+            previewCanvas.height = videoHeight;
+            break;
+    }
+}
 
 // Play/Pause button
 playBtn.addEventListener('click', () => {
@@ -128,9 +175,24 @@ watermarkText.addEventListener('input', renderFrame);
 watermarkType.addEventListener('change', renderFrame);
 filterSelect.addEventListener('change', renderFrame);
 
-// Render frame with effects (TikTok-style watermark with LOGO + TEXT)
+// Render frame with effects and cropping
 function renderFrame() {
     if (!videoElement.videoWidth) return;
+    
+    const canvasWidth = previewCanvas.width;
+    const canvasHeight = previewCanvas.height;
+    const videoWidth = videoElement.videoWidth;
+    const videoHeight = videoElement.videoHeight;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Calculate crop dimensions to fit aspect ratio (cover mode)
+    let scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
+    let scaledWidth = videoWidth * scale;
+    let scaledHeight = videoHeight * scale;
+    let x = (canvasWidth - scaledWidth) / 2;
+    let y = (canvasHeight - scaledHeight) / 2;
     
     // Apply filters
     const brightness = brightnessSlider.value;
@@ -145,36 +207,33 @@ function renderFrame() {
     }
     
     ctx.filter = filterStr;
-    ctx.drawImage(videoElement, 0, 0, previewCanvas.width, previewCanvas.height);
+    ctx.drawImage(videoElement, x, y, scaledWidth, scaledHeight);
     ctx.filter = 'none';
     
     // Draw intro text at top
     const intro = introText.value;
     if (intro) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, previewCanvas.width, 100);
+        ctx.fillRect(0, 0, canvasWidth, 100);
         
         ctx.font = 'bold 36px Arial';
         ctx.fillStyle = 'white';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(intro, previewCanvas.width / 2, 50);
+        ctx.fillText(intro, canvasWidth / 2, 50);
     }
     
-    // ============================================
-    // TIKTOK-STYLE WATERMARK: LOGO + TEXT SIDE BY SIDE
-    // ============================================
-    
+    // TikTok-style watermark: Logo + Text side by side
     const wmType = watermarkType.value;
     
     if (wmType === 'logo' || wmType === 'both') {
         const logoSize = 50;
         const padding = 20;
-        const textGap = 10; // Gap between logo and text
+        const textGap = 10;
         
         // Position at bottom-right
-        const startX = previewCanvas.width - 200; // Reserve space for logo + text
-        const startY = previewCanvas.height - logoSize - padding;
+        const startX = canvasWidth - 200;
+        const startY = canvasHeight - logoSize - padding;
         
         if (logoImage.complete) {
             // Draw semi-transparent background box
@@ -210,11 +269,11 @@ function renderFrame() {
             // Background for text
             const textWidth = ctx.measureText(watermark).width;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(padding - 5, previewCanvas.height - 35, textWidth + 10, 30);
+            ctx.fillRect(padding - 5, canvasHeight - 35, textWidth + 10, 30);
             
             // Draw text
             ctx.fillStyle = 'white';
-            ctx.fillText(watermark, padding, previewCanvas.height - padding);
+            ctx.fillText(watermark, padding, canvasHeight - padding);
         }
     }
 }
@@ -301,7 +360,7 @@ exportBtn.addEventListener('click', async () => {
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'baint-aiops-video.webm';
+            a.download = `baint-aiops-${currentAspectRatio}.webm`;
             a.click();
             
             progressDiv.textContent = 'Export complete! Download started.';
@@ -313,7 +372,7 @@ exportBtn.addEventListener('click', async () => {
         
         // Start recording
         mediaRecorder.start();
-        progressDiv.textContent = 'Recording video with Baint-AIOPs branding...';
+        progressDiv.textContent = `Recording ${currentAspectRatio} video...`;
         
         // Play video
         await videoElement.play();
